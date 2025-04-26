@@ -2,15 +2,15 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
-	_ "github.com/joho/godotenv/autoload"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Service represents a service that interacts with a database.
@@ -22,10 +22,15 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	// DB returns the underlying *gorm.DB instance
+	DB() *gorm.DB
+
+	AutoMigrate() error
 }
 
 type service struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
 var (
@@ -43,15 +48,61 @@ func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
-	db, err := sql.Open("pgx", connStr)
-	if err != nil {
-		log.Fatal(err)
+
+	database = os.Getenv("BLUEPRINT_DB_DATABASE")
+	password = os.Getenv("BLUEPRINT_DB_PASSWORD")
+	username = os.Getenv("BLUEPRINT_DB_USERNAME")
+	port = os.Getenv("BLUEPRINT_DB_PORT")
+	host = os.Getenv("BLUEPRINT_DB_HOST")
+	schema = os.Getenv("BLUEPRINT_DB_SCHEMA")
+
+	// Validate and set default values for environment variables
+	if host == "" || username == "" || password == "" || database == "" || port == "" || schema == "" {
+		log.Fatalf("One or more required environment variables are not set: host=%s, user=%s, dbname=%s, port=%s, schema=%s", host, username, database, port, schema)
 	}
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable search_path=%s",
+		host, username, password, database, port, schema)
+
+	// Configure GORM logger
+	gormLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold:             time.Second, // Log SQL slower than 1 second
+			LogLevel:                  logger.Info, // Log everything
+			IgnoreRecordNotFoundError: true,        // Ignore record not found errors
+			ParameterizedQueries:      false,       // Don't log parameters
+			Colorful:                  true,        // Colorful output
+		},
+	)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: gormLogger,
+	})
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Configure connection pool settings
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("Failed to get database: %v", err)
+	}
+
+	// Set connection pool settings
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(50)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	dbInstance = &service{
 		db: db,
 	}
 	return dbInstance
+}
+
+// DB returns the underlying GORM DB connection
+func (s *service) DB() *gorm.DB {
+	return s.db
 }
 
 // Health checks the health of the database connection by pinging the database.
@@ -62,12 +113,20 @@ func (s *service) Health() map[string]string {
 
 	stats := make(map[string]string)
 
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		stats["status"] = "down"
+		stats["error"] = fmt.Sprintf("Failed to get database: %v", err)
+		log.Printf("Failed to get database: %v", err)
+		return stats
+	}
+
 	// Ping the database
-	err := s.db.PingContext(ctx)
+	err = sqlDB.PingContext(ctx)
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %v", err)
-		log.Fatalf("db down: %v", err) // Log the error and terminate the program
+		log.Printf("db down: %v", err)
 		return stats
 	}
 
@@ -75,8 +134,8 @@ func (s *service) Health() map[string]string {
 	stats["status"] = "up"
 	stats["message"] = "It's healthy"
 
-	// Get database stats (like open connections, in use, idle, etc.)
-	dbStats := s.db.Stats()
+	// Get database stats
+	dbStats := sqlDB.Stats()
 	stats["open_connections"] = strconv.Itoa(dbStats.OpenConnections)
 	stats["in_use"] = strconv.Itoa(dbStats.InUse)
 	stats["idle"] = strconv.Itoa(dbStats.Idle)
@@ -86,7 +145,7 @@ func (s *service) Health() map[string]string {
 	stats["max_lifetime_closed"] = strconv.FormatInt(dbStats.MaxLifetimeClosed, 10)
 
 	// Evaluate stats to provide a health message
-	if dbStats.OpenConnections > 40 { // Assuming 50 is the max for this example
+	if dbStats.OpenConnections > 40 {
 		stats["message"] = "The database is experiencing heavy load."
 	}
 
@@ -106,10 +165,11 @@ func (s *service) Health() map[string]string {
 }
 
 // Close closes the database connection.
-// It logs a message indicating the disconnection from the specific database.
-// If the connection is successfully closed, it returns nil.
-// If an error occurs while closing the connection, it returns the error.
 func (s *service) Close() error {
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
 	log.Printf("Disconnected from database: %s", database)
-	return s.db.Close()
+	return sqlDB.Close()
 }

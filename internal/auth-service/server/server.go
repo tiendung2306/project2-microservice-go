@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"project2-microservice-go/database"
+	"project2-microservice-go/internal/auth-service/routers"
 	"strconv"
 	"time"
-
-	_ "github.com/joho/godotenv/autoload"
-
-	"project2-microservice-go/internal/database"
 )
 
 type Server struct {
@@ -19,17 +17,19 @@ type Server struct {
 }
 
 func NewServer() *http.Server {
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	port, _ := strconv.Atoi(os.Getenv("AUTH_SERVICE_PORT"))
 	NewServer := &Server{
 		port: port,
 
 		db: database.New(),
 	}
 
+	router := routers.NewRouter()
+
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", NewServer.port),
-		Handler:      NewServer.RegisterRoutes(),
+		Handler:      router.RegisterRoutes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,

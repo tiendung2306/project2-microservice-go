@@ -9,7 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"project2-microservice-go/internal/server"
+	"project2-microservice-go/internal/user-service/server"
+
+	"github.com/joho/godotenv"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
@@ -34,6 +36,14 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 
 	// Notify the main goroutine that the shutdown is complete
 	done <- true
+}
+
+func init() {
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
+	}
 }
 
 func main() {
