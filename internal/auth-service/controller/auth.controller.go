@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"net/http"
+	"project2-microservice-go/errors"
+	"project2-microservice-go/internal/auth-service/dto"
 	"project2-microservice-go/internal/auth-service/service"
 
 	"github.com/gin-gonic/gin"
@@ -22,25 +25,41 @@ func NewAuthController(as service.IAuthService) IAuthController {
 }
 
 func (ac *authController) Login(c *gin.Context) {
-	email := c.PostForm("email")
-	password := c.PostForm("password")
-	if email == "" {
-		c.JSON(400, gin.H{"error": "Email is required"})
+	var loginRequest dto.LoginRequest
+	if err := c.ShouldBindJSON(&loginRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format", "details": err.Error()})
 		return
 	}
-	if password == "" {
-		c.JSON(400, gin.H{"error": "Password is required"})
-		return
-	}
-	data, err := ac.authService.Login(email, password)
+
+	response, err := ac.authService.Login(&loginRequest)
 	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+		if appErr, ok := err.(*errors.AppError); ok {
+			c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message, "code": appErr.Code})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
-	c.JSON(200, gin.H{"message": data})
+	c.JSON(http.StatusOK, response)
 }
 
 func (ac *authController) Register(c *gin.Context) {
-	// Logic to handle registration
-	c.JSON(200, gin.H{"message": "Registration successful"})
+	var registerRequest dto.RegisterRequest
+	if err := c.ShouldBindJSON(&registerRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format", "details": err.Error()})
+		return
+	}
+
+	response, err := ac.authService.Register(&registerRequest)
+
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message, "code": appErr.Code})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
