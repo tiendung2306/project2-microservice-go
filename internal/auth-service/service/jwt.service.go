@@ -20,7 +20,7 @@ type JWTClaims struct {
 type IJWTService interface {
 	GenerateToken(user *models.User) (string, error)
 	ValidateToken(tokenString string) (*JWTClaims, error)
-	GenerateRefreshToken(user *models.User) (string, error)
+	GenerateRefreshToken(user *models.User) (*jwt.Token, string, error)
 }
 
 type jwtService struct {
@@ -69,7 +69,7 @@ func (s *jwtService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	return claims, nil
 }
 
-func (s *jwtService) GenerateRefreshToken(user *models.User) (string, error) {
+func (s *jwtService) GenerateRefreshToken(user *models.User) (*jwt.Token, string, error) {
 	claims := &JWTClaims{
 		UserID:   user.ID,
 		Username: user.Username,
@@ -81,5 +81,6 @@ func (s *jwtService) GenerateRefreshToken(user *models.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.config.SecretKey))
+	stringToken, err := token.SignedString([]byte(s.config.SecretKey))
+	return token, stringToken, err
 }

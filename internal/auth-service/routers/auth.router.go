@@ -20,5 +20,6 @@ func RegisterAuthRoutes(router *gin.RouterGroup) {
 	{
 		authGroup.POST("/login", authController.Login)       // POST /api/auth/login
 		authGroup.POST("/register", authController.Register) // POST /api/auth/register
+		authGroup.POST("/refresh-token", authController.RefreshToken) // POST /api/auth/refresh-token
 	}
 }

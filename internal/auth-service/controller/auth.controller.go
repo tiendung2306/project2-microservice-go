@@ -12,6 +12,7 @@ import (
 type IAuthController interface {
 	Login(c *gin.Context)
 	Register(c *gin.Context)
+	RefreshToken(c *gin.Context)
 }
 
 type authController struct {
@@ -62,4 +63,23 @@ func (ac *authController) Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, response)
+}
+
+func (ac *authController) RefreshToken(c *gin.Context) {
+	var refreshTokenRequest dto.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&refreshTokenRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format", "details": err.Error()})
+		return
+	}
+
+	response, err := ac.authService.RefreshToken(&refreshTokenRequest)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message, "code": appErr.Code})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, response)
 }
