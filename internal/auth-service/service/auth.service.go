@@ -11,8 +11,9 @@ import (
 )
 
 type IAuthService interface {
-	Login(request *dto.LoginRequest) (*dto.AuthResponse, error)       // Login method
-	Register(request *dto.RegisterRequest) (*dto.AuthResponse, error) // Register method
+	Login(request *dto.LoginRequest) (*dto.AuthResponse, error)               // Login method
+	Register(request *dto.RegisterRequest) (*dto.AuthResponse, error)         // Register method
+	RefreshToken(request *dto.RefreshTokenRequest) (*dto.AuthResponse, error) // RefreshToken method
 }
 
 type authService struct {
@@ -44,13 +45,36 @@ func (s *authService) Login(request *dto.LoginRequest) (*dto.AuthResponse, error
 	if err != nil {
 		return nil, errors.NewInternalServerError("Failed to generate token", err)
 	}
-	refreshToken, err := s.jwtService.GenerateRefreshToken(user)
+	refreshToken, stringRefreshToken, err := s.jwtService.GenerateRefreshToken(user)
 	if err != nil {
 		return nil, errors.NewInternalServerError("Failed to generate refresh token", err)
 	}
+
+	tokenExpiresAt, err := refreshToken.Claims.GetExpirationTime()
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to get expiration time", err)
+	}
+	tokenCreatedAt, err := refreshToken.Claims.GetIssuedAt()
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to get issued at time", err)
+	}
+
+	refreshTokenModel := &models.RefreshToken{
+		Token:     stringRefreshToken,
+		UserID:    user.ID,
+		IsRevoked: false,
+		ExpiresAt: tokenExpiresAt.Time,
+		CreatedAt: tokenCreatedAt.Time,
+		UpdatedAt: tokenCreatedAt.Time,
+	}
+
+	if err := s.authRepository.SaveRefreshToken(refreshTokenModel); err != nil {
+		return nil, errors.NewInternalServerError("Failed to save refresh token", err)
+	}
+
 	return &dto.AuthResponse{
 		Token:        token,
-		RefreshToken: refreshToken,
+		RefreshToken: stringRefreshToken,
 		UserID:       user.ID,
 		Username:     user.Username,
 		Email:        user.Email,
@@ -83,16 +107,89 @@ func (s *authService) Register(request *dto.RegisterRequest) (*dto.AuthResponse,
 	if err != nil {
 		return nil, errors.NewInternalServerError("Failed to generate token", err)
 	}
-	refreshToken, err := s.jwtService.GenerateRefreshToken(newUser)
+	refreshToken, stringRefreshToken, err := s.jwtService.GenerateRefreshToken(newUser)
 	if err != nil {
 		return nil, errors.NewInternalServerError("Failed to generate refresh token", err)
 	}
 
+	tokenExpiresAt, err := refreshToken.Claims.GetExpirationTime()
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to get expiration time", err)
+	}
+	tokenCreatedAt, err := refreshToken.Claims.GetIssuedAt()
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to get issued at time", err)
+	}
+
+	refreshTokenModel := &models.RefreshToken{
+		Token:     stringRefreshToken,
+		UserID:    newUser.ID,
+		IsRevoked: false,
+		ExpiresAt: tokenExpiresAt.Time,
+		CreatedAt: tokenCreatedAt.Time,
+		UpdatedAt: tokenCreatedAt.Time,
+	}
+
+	if err := s.authRepository.SaveRefreshToken(refreshTokenModel); err != nil {
+		return nil, errors.NewInternalServerError("Failed to save refresh token", err)
+	}
+
 	return &dto.AuthResponse{
 		Token:        token,
-		RefreshToken: refreshToken,
+		RefreshToken: stringRefreshToken,
 		UserID:       newUser.ID,
 		Username:     newUser.Username,
 		Email:        newUser.Email,
+	}, nil
+}
+
+func (s *authService) RefreshToken(request *dto.RefreshTokenRequest) (*dto.AuthResponse, error) {
+	refreshToken, err := s.jwtService.ValidateToken(request.RefreshToken)
+	if err != nil {
+		return nil, errors.NewUnauthorizedError("Invalid refresh token", err)
+	}
+
+	user, err := s.authRepository.GetUserByEmail(refreshToken.Email)
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to get user", err)
+	}
+
+	token, err := s.jwtService.GenerateToken(user)
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to generate token", err)
+	}
+	newRefreshToken, stringRefreshToken, err := s.jwtService.GenerateRefreshToken(user)
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to generate refresh token", err)
+	}
+
+	tokenExpiresAt, err := newRefreshToken.Claims.GetExpirationTime()
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to get expiration time", err)
+	}
+	tokenCreatedAt, err := newRefreshToken.Claims.GetIssuedAt()
+	if err != nil {
+		return nil, errors.NewInternalServerError("Failed to get issued at time", err)
+	}
+
+	refreshTokenModel := &models.RefreshToken{
+		Token:     stringRefreshToken,
+		UserID:    user.ID,
+		IsRevoked: false,
+		ExpiresAt: tokenExpiresAt.Time,
+		CreatedAt: tokenCreatedAt.Time,
+		UpdatedAt: tokenCreatedAt.Time,
+	}
+
+	if err := s.authRepository.SaveRefreshToken(refreshTokenModel); err != nil {
+		return nil, errors.NewInternalServerError("Failed to save refresh token", err)
+	}
+
+	return &dto.AuthResponse{
+		Token:        token,
+		RefreshToken: stringRefreshToken,
+		UserID:       user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
 	}, nil
 }

@@ -10,6 +10,7 @@ type IAuthRepository interface {
 	IsEmailExists(email string) bool
 	CreateUser(user *models.User) error
 	GetUserByEmail(email string) (*models.User, error)
+	SaveRefreshToken(token *models.RefreshToken) error
 }
 
 type authRepository struct {
@@ -43,4 +44,12 @@ func (ar *authRepository) GetUserByEmail(email string) (*models.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (ar *authRepository) SaveRefreshToken(token *models.RefreshToken) error {
+	err := ar.db.Create(token).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -12,6 +12,7 @@ func (s *service) AutoMigrate() error {
 	err := s.db.AutoMigrate(
 		&models.User{},
 		&models.Task{},
+		&models.RefreshToken{},
 	)
 
 	if err != nil {
