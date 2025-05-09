@@ -13,6 +13,7 @@ func (s *service) AutoMigrate() error {
 		&models.User{},
 		&models.Task{},
 		&models.RefreshToken{},
+		&models.Notification{},
 	)
 
 	if err != nil {
