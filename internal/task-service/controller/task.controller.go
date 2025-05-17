@@ -35,7 +35,7 @@ func (t *taskController) CreateTask(c *gin.Context) {
 
 	task, err := t.taskService.CreateTask(&CreateTaskRequest)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to create task"})
+		c.JSON(500, gin.H{"error": "Failed to create task, " + err.Error()})
 		return
 	}
 	c.JSON(201, task)

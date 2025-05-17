@@ -44,7 +44,7 @@ func (r *Router) RegisterRoutes() http.Handler {
 
 	// Group routes by module
 	api := router.Group("/api")
-	RegisterHealthRoutes(api)                       // Health module
+	RegisterHealthRoutes(api)                      // Health module
 	RegisterNotificationRoutes(api, jwtMiddleware) // Notification module
 
 	return router

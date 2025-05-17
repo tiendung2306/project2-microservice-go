@@ -81,13 +81,14 @@ func (tr *taskRepository) GetTaskByID(id int) (*dto.TaskResponse, error) {
 }
 
 func (tr *taskRepository) UpdateTask(id int, task models.Task) (models.Task, error) {
-	// Implementation for updating a task
-	// This is just a placeholder. You should implement the actual logic to update a task in your database.
+	result := tr.db.Model(&models.Task{}).Where("id = ?", id).Updates(task)
+	if result.Error != nil {
+		return models.Task{}, result.Error
+	}
 	return task, nil
 }
 
 func (tr *taskRepository) DeleteTask(id int) error {
-	// Implementation for deleting a task
-	// This is just a placeholder. You should implement the actual logic to delete a task from your database.
-	return nil
+	result := tr.db.Delete(&models.Task{}, id)
+	return result.Error
 }
