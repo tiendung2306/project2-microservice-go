@@ -11,6 +11,7 @@ type IAuthRepository interface {
 	CreateUser(user *models.User) error
 	GetUserByEmail(email string) (*models.User, error)
 	SaveRefreshToken(token *models.RefreshToken) error
+	UpdateUserPassword(userID uint, hashedPassword string) error
 }
 
 type authRepository struct {
@@ -48,6 +49,14 @@ func (ar *authRepository) GetUserByEmail(email string) (*models.User, error) {
 
 func (ar *authRepository) SaveRefreshToken(token *models.RefreshToken) error {
 	err := ar.db.Create(token).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ar *authRepository) UpdateUserPassword(userID uint, hashedPassword string) error {
+	err := ar.db.Model(&models.User{}).Where("id = ?", userID).Update("password", hashedPassword).Error
 	if err != nil {
 		return err
 	}

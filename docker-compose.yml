@@ -87,6 +87,10 @@ services:
       BLUEPRINT_DB_USERNAME: postgres
       BLUEPRINT_DB_PASSWORD: 123
       BLUEPRINT_DB_SCHEMA: public
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
     ports:
       - "3000:3000"
     networks:

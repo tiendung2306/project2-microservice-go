@@ -14,6 +14,7 @@ type IAuthService interface {
 	Login(request *dto.LoginRequest) (*dto.AuthResponse, error)               // Login method
 	Register(request *dto.RegisterRequest) (*dto.AuthResponse, error)         // Register method
 	RefreshToken(request *dto.RefreshTokenRequest) (*dto.AuthResponse, error) // RefreshToken method
+	ChangePassword(userID uint, request *dto.ChangePasswordRequest) error     // ChangePassword method
 }
 
 type authService struct {
@@ -192,4 +193,17 @@ func (s *authService) RefreshToken(request *dto.RefreshTokenRequest) (*dto.AuthR
 		Username:     user.Username,
 		Email:        user.Email,
 	}, nil
+}
+
+func (s *authService) ChangePassword(userID uint, request *dto.ChangePasswordRequest) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.NewInternalServerError("Failed to hash password", err)
+	}
+
+	if err := s.authRepository.UpdateUserPassword(userID, string(hashedPassword)); err != nil {
+		return errors.NewInternalServerError("Failed to update password", err)
+	}
+
+	return nil
 }

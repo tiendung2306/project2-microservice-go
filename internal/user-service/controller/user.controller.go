@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+	"project2-microservice-go/internal/user-service/dto"
 	"project2-microservice-go/internal/user-service/service"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +14,7 @@ type IUserController interface {
 	GetUserByID(c *gin.Context)
 	UpdateUser(c *gin.Context)
 	DeleteUser(c *gin.Context)
+	ChangePassword(c *gin.Context)
 }
 
 type userController struct {
@@ -34,21 +37,82 @@ func (u *userController) GetAllUsers(c *gin.Context) {
 }
 
 func (u *userController) CreateUser(c *gin.Context) {
-	// Logic to create a user
-	c.JSON(200, gin.H{"message": "Create user"})
+	var createUserRequest dto.CreateUserRequest
+	if err := c.ShouldBindJSON(&createUserRequest); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request format"})
+		return
+	}
+	user, err := u.userService.CreateUser(&createUserRequest)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to create user"})
+		return
+	}
+	userResponse := dto.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+	c.JSON(201, userResponse)
 }
 
 func (u *userController) GetUserByID(c *gin.Context) {
-	// Logic to get a user by ID
-	c.JSON(200, gin.H{"message": "Get user by ID"})
+	id := c.Param("id")
+	user, err := u.userService.GetUserByID(id)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+	userResponse := dto.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+	c.JSON(200, userResponse)
 }
 
 func (u *userController) UpdateUser(c *gin.Context) {
-	// Logic to update a user
-	c.JSON(200, gin.H{"message": "Update user"})
+	id := c.Param("id")
+	var updateUserRequest dto.UpdateUserRequest
+	if err := c.ShouldBindJSON(&updateUserRequest); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request format"})
+		return
+	}
+	user, err := u.userService.UpdateUser(id, &updateUserRequest)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update user " + err.Error()})
+		return
+	}
+	userResponse := dto.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+	c.JSON(200, userResponse)
 }
 
 func (u *userController) DeleteUser(c *gin.Context) {
-	// Logic to delete a user
-	c.JSON(200, gin.H{"message": "Delete user"})
+	id := c.Param("id")
+	err := u.userService.DeleteUser(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete user"})
+		return
+	}
+	c.JSON(200, gin.H{"message": "User deleted successfully"})
+}
+
+func (u *userController) ChangePassword(c *gin.Context) {
+	id := c.Param("id")
+	var changePasswordRequest dto.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&changePasswordRequest); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request format"})
+		return
+	}
+	fmt.Printf("id: %s\n", id)
+	fmt.Printf("changePasswordRequest: %+v\n", changePasswordRequest)
 }
