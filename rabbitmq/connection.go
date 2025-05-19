@@ -2,7 +2,9 @@ package rabbitmq
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -73,4 +75,27 @@ func (r *RabbitMQ) Close() {
 	if r.conn != nil {
 		r.conn.Close()
 	}
+}
+
+func Initialize() (*RabbitMQ, error) {
+	// Initialize RabbitMQ with retry logic
+	var rabbitmqClient *RabbitMQ
+	var err error
+	maxRetries := 5
+	retryDelay := 5 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		rabbitmqClient, err = NewRabbitMQ()
+		if err == nil {
+			log.Println("Successfully connected to RabbitMQ")
+			break
+		}
+		log.Printf("Failed to connect to RabbitMQ (attempt %d/%d): %v", i+1, maxRetries, err)
+		if i < maxRetries-1 {
+			log.Printf("Retrying in %v...", retryDelay)
+			time.Sleep(retryDelay)
+		}
+	}
+
+	return rabbitmqClient, err
 }

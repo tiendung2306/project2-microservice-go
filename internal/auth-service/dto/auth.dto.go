@@ -22,3 +22,7 @@ type AuthResponse struct {
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
+
+type ChangePasswordRequest struct {
+	NewPassword string `json:"newPassword" binding:"required,min=6"`
+}

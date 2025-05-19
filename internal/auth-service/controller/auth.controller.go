@@ -13,6 +13,7 @@ type IAuthController interface {
 	Login(c *gin.Context)
 	Register(c *gin.Context)
 	RefreshToken(c *gin.Context)
+	ChangePassword(c *gin.Context)
 }
 
 type authController struct {
@@ -82,4 +83,30 @@ func (ac *authController) RefreshToken(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, response)
+}
+
+func (ac *authController) ChangePassword(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var changePasswordRequest dto.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&changePasswordRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format", "details": err.Error()})
+		return
+	}
+
+	err := ac.authService.ChangePassword(userID.(uint), &changePasswordRequest)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message, "code": appErr.Code})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
