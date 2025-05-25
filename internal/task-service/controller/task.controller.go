@@ -14,6 +14,7 @@ type ITaskController interface {
 	GetTaskByID(c *gin.Context)
 	UpdateTask(c *gin.Context)
 	DeleteTask(c *gin.Context)
+	GetTasksByUserID(c *gin.Context)
 }
 
 type taskController struct {
@@ -41,7 +42,8 @@ func (t *taskController) CreateTask(c *gin.Context) {
 	c.JSON(201, task)
 }
 func (t *taskController) GetAllTasks(c *gin.Context) {
-	tasks, err := t.taskService.GetAllTasks()
+	status := c.Query("status")
+	tasks, err := t.taskService.GetAllTasks(status)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch tasks"})
 		return
@@ -62,8 +64,50 @@ func (t *taskController) GetTaskByID(c *gin.Context) {
 	c.JSON(200, task)
 }
 func (t *taskController) UpdateTask(c *gin.Context) {
-	// Implementation for updating a task
+	var UpdateTaskRequest dto.UpdateTaskRequest
+	if err := c.ShouldBindJSON(&UpdateTaskRequest); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request format"})
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid task ID"})
+		return
+	}
+	task, err := t.taskService.UpdateTask(uint(id), &UpdateTaskRequest)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update task, " + err.Error()})
+		return
+	}
+	c.JSON(200, task)
 }
 func (t *taskController) DeleteTask(c *gin.Context) {
-	// Implementation for deleting a task
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid task ID"})
+		return
+	}
+
+	err = t.taskService.DeleteTask(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete task, " + err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "Task deleted successfully"})
+}
+
+func (t *taskController) GetTasksByUserID(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	status := c.Query("status")
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid user ID"})
+		return
+	}
+	tasks, err := t.taskService.GetTasksByUserID(userID, status)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch tasks"})
+		return
+	}
+	c.JSON(200, tasks)
 }

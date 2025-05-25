@@ -11,10 +11,11 @@ import (
 
 type ITaskService interface {
 	CreateTask(request *dto.CreateTaskRequest) (*dto.TaskResponse, error)
-	GetAllTasks() ([]models.Task, error)
+	GetAllTasks(status string) ([]models.Task, error)
 	GetTaskByID(id int) (*dto.TaskResponse, error)
-	UpdateTask(id int, task models.Task) (models.Task, error)
+	UpdateTask(id uint, request *dto.UpdateTaskRequest) (models.Task, error)
 	DeleteTask(id int) error
+	GetTasksByUserID(userID int, status string) ([]models.Task, error)
 }
 
 type taskService struct {
@@ -68,9 +69,9 @@ func (t *taskService) CreateTask(request *dto.CreateTaskRequest) (*dto.TaskRespo
 	return createdTask, nil
 }
 
-func (t *taskService) GetAllTasks() ([]models.Task, error) {
+func (t *taskService) GetAllTasks(status string) ([]models.Task, error) {
 	// Implementation for getting all tasks
-	tasks, err := t.taskRepository.GetAllTasks()
+	tasks, err := t.taskRepository.GetAllTasks(status)
 	if err != nil {
 		return nil, err
 	}
@@ -86,15 +87,15 @@ func (t *taskService) GetTaskByID(id int) (*dto.TaskResponse, error) {
 	return task, nil
 }
 
-func (t *taskService) UpdateTask(id int, task models.Task) (models.Task, error) {
+func (t *taskService) UpdateTask(id uint, request *dto.UpdateTaskRequest) (models.Task, error) {
 	// Implementation for updating a task
-	updatedTask, err := t.taskRepository.UpdateTask(id, task)
+	updatedTask, err := t.taskRepository.UpdateTask(id, request)
 	if err != nil {
 		return models.Task{}, err
 	}
 
 	// Get user email from user repository
-	userEmail, err := t.userRepository.GetUserEmailByID(task.UserID)
+	userEmail, err := t.userRepository.GetUserEmailByID(id)
 	if err != nil {
 		// Log error but don't fail the request
 		// TODO: Add proper logging
@@ -105,10 +106,10 @@ func (t *taskService) UpdateTask(id int, task models.Task) (models.Task, error) 
 	message := rabbitmq.NotificationMessage{
 		Type:    "task",
 		Action:  "update",
-		UserID:  task.UserID,
+		UserID:  updatedTask.UserID,
 		Email:   userEmail,
 		Subject: "Task Updated",
-		Content: "Task has been updated: " + task.Title,
+		Content: "Task has been updated: " + updatedTask.Title,
 	}
 	err = t.rabbitmq.PublishMessage(message)
 	if err != nil {
@@ -156,4 +157,12 @@ func (t *taskService) DeleteTask(id int) error {
 	}
 
 	return nil
+}
+
+func (t *taskService) GetTasksByUserID(userID int, status string) ([]models.Task, error) {
+	tasks, err := t.taskRepository.GetTasksByUserID(userID, status)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }
