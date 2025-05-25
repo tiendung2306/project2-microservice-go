@@ -12,7 +12,7 @@ type Task struct {
 	Content   string    `gorm:"size:255;not null" json:"content"`
 	StartDate time.Time `json:"start_date"`
 	DueDate   time.Time `json:"due_date"`
-	Status    string    `gorm:"size:50;not null" json:"status"` // e.g., "todo", "in progress", "done"
+	Status    string    `gorm:"size:50;not null" json:"status"` // e.g., "To Do", "In Progress", "Done"
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

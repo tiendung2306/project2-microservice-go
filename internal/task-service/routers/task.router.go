@@ -32,6 +32,7 @@ func RegisterTaskRoutes(router *gin.RouterGroup, jwtMiddleware *middleware.JWTAu
 		taskGroup.GET("", taskController.GetAllTasks)       // GET /api/task
 		taskGroup.POST("", taskController.CreateTask)       // POST /api/task
 		taskGroup.GET("/:id", taskController.GetTaskByID)   // GET /api/task/:id
+		taskGroup.GET("/user/:id", taskController.GetTasksByUserID)
 		taskGroup.PUT("/:id", taskController.UpdateTask)    // PUT /api/task/:id
 		taskGroup.DELETE("/:id", taskController.DeleteTask) // DELETE /api/task/:id
 	}
