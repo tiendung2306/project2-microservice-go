@@ -180,6 +180,24 @@ services:
       retries: 5
     restart: unless-stopped
 
+  dashboard-service:
+    build:
+      context: .
+      dockerfile: docker/dashboard-service.Dockerfile
+    container_name: dashboard-service
+    environment:
+      APP_ENV: local
+      DASHBOARD_SERVICE_PORT: 3004
+      FRONTEND_URL: http://localhost:5173
+      BASE_URL: localhost
+    ports:
+      - "3004:3004"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - microservice-network
+    restart: unless-stopped
+
 networks:
   microservice-network:
     driver: bridge
