@@ -5,7 +5,7 @@ import "time"
 type CreateTaskRequest struct {
 	UserID    uint      `json:"user_id" binding:"required"`
 	Title     string    `json:"title" binding:"required,max=255"`
-	Content   string    `json:"content" binding:"required,max=255"`
+	Content   string    `json:"content" binding:"max=255"`
 	StartDate time.Time `json:"start_date" binding:"required"`
 	DueDate   time.Time `json:"due_date" binding:"required"`
 	Status    string    `json:"status" binding:"required,oneof='To Do' 'In Progress' 'Done'"`
@@ -25,7 +25,7 @@ type TaskResponse struct {
 
 type UpdateTaskRequest struct {
 	Title     string    `json:"title" binding:"required,max=255"`
-	Content   string    `json:"content" binding:"required,max=255"`
+	Content   string    `json:"content" binding:"max=255"`
 	StartDate time.Time `json:"start_date" binding:"required"`
 	DueDate   time.Time `json:"due_date" binding:"required"`
 	Status    string    `json:"status" binding:"required,oneof='To Do' 'In Progress' 'Done'"`
