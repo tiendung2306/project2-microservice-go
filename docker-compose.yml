@@ -60,8 +60,8 @@ services:
       BLUEPRINT_DB_SCHEMA: public
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: 587
-      SMTP_USER: delores.lueilwitz17@ethereal.email
-      SMTP_PASS: xVH1YeaDnqt6c8tQP2
+      SMTP_USER: emmie.willms5@ethereal.email
+      SMTP_PASS: 6pXUgqaER3HSh4a41B
       SMTP_FROM: tiendung2306@gmail.com
     ports:
       - "3001:3001"
@@ -149,8 +149,8 @@ services:
       BLUEPRINT_DB_SCHEMA: public
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: 587
-      SMTP_USER: aditya.wunsch@ethereal.email
-      SMTP_PASS: vuMTSmwPuMWUXqKyST
+      SMTP_USER: emmie.willms5@ethereal.email
+      SMTP_PASS: 6pXUgqaER3HSh4a41B
       SMTP_FROM: tiendung2306@gmail.com
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
@@ -194,6 +194,23 @@ services:
       - "3004:3004"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - microservice-network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "3005:3000"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - user-service
+      - task-service
+      - notification-service
+      - dashboard-service
     networks:
       - microservice-network
     restart: unless-stopped

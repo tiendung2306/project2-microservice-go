@@ -95,10 +95,8 @@ func (t *taskService) UpdateTask(id uint, request *dto.UpdateTaskRequest) (model
 	}
 
 	// Get user email from user repository
-	userEmail, err := t.userRepository.GetUserEmailByID(id)
+	userEmail, err := t.userRepository.GetUserEmailByID(updatedTask.UserID)
 	if err != nil {
-		// Log error but don't fail the request
-		// TODO: Add proper logging
 		return updatedTask, nil
 	}
 

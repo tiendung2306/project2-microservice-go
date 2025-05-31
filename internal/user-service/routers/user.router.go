@@ -7,12 +7,13 @@ import (
 	"project2-microservice-go/internal/user-service/controller"
 	"project2-microservice-go/internal/user-service/repository"
 	"project2-microservice-go/internal/user-service/service"
+	"project2-microservice-go/middleware"
 	"project2-microservice-go/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterUserRoutes(router *gin.RouterGroup) {
+func RegisterUserRoutes(router *gin.RouterGroup, jwtMiddleware *middleware.JWTAuthMiddleware) {
 	rabbitmqClient, err := rabbitmq.Initialize()
 	if err != nil {
 		log.Printf("Failed to connect to RabbitMQ: %v", err)
@@ -24,8 +25,9 @@ func RegisterUserRoutes(router *gin.RouterGroup) {
 	userController := controller.NewUserController(userService)
 	userGroup := router.Group("/user") // Group all /user routes
 	{
-		userGroup.GET("", userController.GetAllUsers)                         // GET /api/user
-		userGroup.POST("", userController.CreateUser)                         // POST /api/user
+		userGroup.GET("", userController.GetAllUsers) // GET /api/user
+		userGroup.POST("", userController.CreateUser) // POST /api/user
+		userGroup.GET("/me", jwtMiddleware.AuthRequired(), userController.GetMe)
 		userGroup.GET("/:id", userController.GetUserByID)                     // GET /api/user/:id
 		userGroup.PATCH("/:id", userController.UpdateUser)                    // PATCH /api/user/:id
 		userGroup.DELETE("/:id", userController.DeleteUser)                   // DELETE /api/user/:id

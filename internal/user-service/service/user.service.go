@@ -1,10 +1,13 @@
 package service
 
 import (
+	"errors"
 	"project2-microservice-go/internal/user-service/dto"
 	"project2-microservice-go/internal/user-service/repository"
 	"project2-microservice-go/models"
 	"project2-microservice-go/rabbitmq"
+
+	"github.com/gin-gonic/gin"
 )
 
 type IUserService interface {
@@ -13,6 +16,7 @@ type IUserService interface {
 	GetUserByID(id string) (*models.User, error)
 	UpdateUser(id string, request *dto.UpdateUserRequest) (*models.User, error)
 	DeleteUser(id string) error
+	GetMe(c *gin.Context) (*models.User, error)
 }
 
 type userService struct {
@@ -65,4 +69,16 @@ func (us *userService) DeleteUser(id string) error {
 		return err
 	}
 	return nil
+}
+
+func (us *userService) GetMe(c *gin.Context) (*models.User, error) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		return nil, errors.New("userID not found in context")
+	}
+	user, err := us.userRepository.FindByID(userID.(string))
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
