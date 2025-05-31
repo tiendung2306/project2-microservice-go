@@ -15,6 +15,7 @@ type IUserController interface {
 	UpdateUser(c *gin.Context)
 	DeleteUser(c *gin.Context)
 	ChangePassword(c *gin.Context)
+	GetMe(c *gin.Context)
 }
 
 type userController struct {
@@ -115,4 +116,14 @@ func (u *userController) ChangePassword(c *gin.Context) {
 	}
 	fmt.Printf("id: %s\n", id)
 	fmt.Printf("changePasswordRequest: %+v\n", changePasswordRequest)
+}
+
+func (u *userController) GetMe(c *gin.Context) {
+	fmt.Printf("GetMe\n")
+	user, err := u.userService.GetMe(c)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to get me: " + err.Error()})
+		return
+	}
+	c.JSON(200, user)
 }

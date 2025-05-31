@@ -5,7 +5,6 @@ import (
 	"project2-microservice-go/models"
 )
 
-// AutoMigrate tự động tạo hoặc cập nhật schema database dựa trên các models
 func (s *service) AutoMigrate() error {
 	log.Println("Creating schema database...")
 

@@ -3,6 +3,9 @@ package routers
 import (
 	"net/http"
 	"os"
+	"project2-microservice-go/internal/auth-service/config"
+	"project2-microservice-go/internal/auth-service/service"
+	"project2-microservice-go/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -35,10 +38,13 @@ func (r *Router) RegisterRoutes() http.Handler {
 		AllowCredentials: true, // Enable cookies/auth
 	}))
 
+	jwtConfig := config.NewJWTConfig()
+	jwtService := service.NewJWTService(jwtConfig)
+	jwtMiddleware := middleware.NewJWTAuthMiddleware(jwtService)
 	// Group routes by module
 	api := router.Group("/api")
-	RegisterHealthRoutes(api) // Health module
-	RegisterUserRoutes(api)   // User module (example)
+	RegisterHealthRoutes(api)              // Health module
+	RegisterUserRoutes(api, jwtMiddleware) // User module (example)
 	// RegisterProductRoutes(api) // Product module (example)
 
 	return router
